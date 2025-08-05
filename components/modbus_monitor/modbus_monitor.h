@@ -14,7 +14,7 @@ namespace modbus_monitor {
 
 class ModbusMonitor : public Component, public uart::UARTDevice {
  public:
-  ModbusMonitor();
+  ModbusMonitor(bool log_not_configured_data);
 
  private:
   ModbusMonitor(const ModbusMonitor&);
@@ -38,4 +38,4 @@ class ModbusMonitor : public Component, public uart::UARTDevice {
 } //namespace modbus_monitor
 } //namespace esphome
 
-#endif // MODBUS_SPY_H_
+#endif // MODBUS_MONITOR_H_
