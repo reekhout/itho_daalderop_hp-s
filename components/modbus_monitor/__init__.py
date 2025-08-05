@@ -5,7 +5,7 @@ from esphome.const import CONF_ID
 
 DEPENDENCIES = ["uart"]
 
-modbus_monitor_ns = cg.esphome_ns.namespace("modbus_monitor")
+modbus_monitor_ns = cg.esphome_ns.namespace('modbus_monitor')
 ModbusMonitor = modbus_monitor_ns.class_('ModbusMonitor', cg.Component, uart.UARTDevice)
 
 CONFIG_SCHEMA = cv.Schema({
