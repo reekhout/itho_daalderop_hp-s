@@ -1,0 +1,432 @@
+esphome:
+  name: esphome-web-910fd8
+  friendly_name: itho_daalderop_hp-s_55
+  min_version: 2025.5.0
+  name_add_mac_suffix: false
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  baud_rate: 0
+
+# Enable Home Assistant API
+api:
+
+# Allow Over-The-Air updates
+ota:
+- platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+external_components:
+  - source: github://reekhout/itho_daalderop_hp-s@v0.0.1
+    refresh: 0s
+
+uart:
+  baud_rate: 19200
+  rx_pin: GPIO20
+  parity: ODD
+
+modbus_monitor:
+  id: modbusmonitor
+  log_not_configured_data: false
+
+sensor:
+  - platform: modbus_monitor
+    name: "Inside temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x0B
+    register_address: 41200
+    filters:
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Domestic hot water temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x0B
+    register_address: 41201
+    filters:
+      - filter_out: 3000
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Heating/cooling temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x0B
+    register_address: 41202
+    filters:
+      - filter_out: 3000
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Heat exchanger water outlet temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x0B
+    register_address: 41203
+    filters:
+      - filter_out: 3000
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: heat_exchanger_delta_t
+            state: !lambda |-
+              return x - id(heat_exchanger_water_inlet_temperature).state;
+  - platform: modbus_monitor
+    name: "Heat exchanger water inlet temperature"
+    id: heat_exchanger_water_inlet_temperature
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x0B
+    register_address: 41204
+    filters:
+      - filter_out: 3000
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: template
+    name: Heat exchanger delta T
+    id: heat_exchanger_delta_t
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:delta"
+  - platform: modbus_monitor
+    name: "Indoor coil temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x0B
+    register_address: 41205
+    filters:
+      - filter_out: 3000
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Heating/cooling circuit 1 temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x0B
+    register_address: 41208
+    filters:
+      - filter_out: 3000
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Heating/cooling circuit 2 temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x0B
+    register_address: 41209
+    filters:
+      - filter_out: 3000
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Internal pump speed state"
+    state_class: "measurement"
+    device_address: 0x0B
+    register_address: 41304
+    filters:
+      - delta: 1
+      - lambda: !lambda |-
+          switch ((int)x)
+          {
+            case 1000:
+              return 0;
+            case 500:
+              return 1;
+            case 250:
+              return 2;
+            default:
+              return 3;
+          }
+    on_value:
+      then:
+        - text_sensor.template.publish:
+            id: internal_pump_speed_text
+            state: !lambda |-
+              switch ((int)x)
+              {
+                case 0:
+                  return "Uit";
+                case 1:
+                  return "Laag";
+                case 2:
+                  return "Gemiddeld";
+                default:
+                  return "Hoog";
+              }
+  - platform: modbus_monitor
+    name: "Outdoor voltage"
+    device_class: "voltage"
+    accuracy_decimals: 0
+    state_class: "measurement"
+    unit_of_measurement: "V"
+    device_address: 0x02
+    register_address: 42101
+    filters:
+      - delta: 1
+  - platform: modbus_monitor
+    name: "Outdoor current"
+    device_class: "current"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "A"
+    device_address: 0x02
+    register_address: 42102
+    filters:
+      - multiply: 0.1
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Compressor working speed setpoint"
+    device_class: "frequency"
+    accuracy_decimals: 0
+    state_class: "measurement"
+    unit_of_measurement: "Hz"
+    device_address: 0x02
+    register_address: 42103
+    filters:
+      - delta: 1
+  - platform: modbus_monitor
+    name: "Compressor working speed actual"
+    device_class: "frequency"
+    accuracy_decimals: 0
+    state_class: "measurement"
+    unit_of_measurement: "Hz"
+    device_address: 0x02
+    register_address: 42104
+    filters:
+      - delta: 1
+  - platform: modbus_monitor
+    name: "Outdoor fan setpoint"
+    #device_class: "frequency"
+    accuracy_decimals: 0
+    state_class: "measurement"
+    unit_of_measurement: "rpm"
+    icon: mdi:fan
+    device_address: 0x02
+    register_address: 42105
+    filters:
+      - delta: 1
+  - platform: modbus_monitor
+    name: "Outdoor fan 1 actual"
+    #device_class: "frequency"
+    accuracy_decimals: 0
+    state_class: "measurement"
+    unit_of_measurement: "rpm"
+    icon: mdi:fan
+    device_address: 0x02
+    register_address: 42106
+    filters:
+      - delta: 1
+  - platform: modbus_monitor
+    name: "Expansion valve setting"
+    state_class: "measurement"
+    device_address: 0x02
+    register_address: 42108
+    filters:
+      - delta: 1
+  - platform: modbus_monitor
+    name: "Ambient temperature"
+    id: ambient_temperature
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x02
+    register_address: 42111
+    filters:
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Outdoor coil temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x02
+    register_address: 42112
+    filters:
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Discharge temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x02
+    register_address: 42113
+    filters:
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Suction temperature"
+    device_class: "temperature"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_address: 0x02
+    register_address: 42114
+    filters:
+      - offset: -3000
+      - multiply: 0.01
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "Low pressure"
+    device_class: "pressure"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "bar"
+    device_address: 0x02
+    register_address: 42117
+    filters:
+      - multiply: 0.1
+      - delta: 0.1
+  - platform: modbus_monitor
+    name: "High pressure"
+    device_class: "pressure"
+    accuracy_decimals: 1
+    state_class: "measurement"
+    unit_of_measurement: "bar"
+    device_address: 0x02
+    register_address: 42118
+    filters:
+      - multiply: 0.1
+      - delta: 0.1
+  - platform: modbus_monitor
+    id: defrost_value1
+    device_address: 0x02
+    register_address: 42109
+  - platform: modbus_monitor
+    id: defrost_value2
+    device_address: 0x02
+    register_address: 42119
+  - platform: modbus_monitor
+    id: defrost_value3
+    device_address: 0x02
+    register_address: 42120
+  - platform: wifi_signal # Reports the WiFi signal strength/RSSI in dB
+    name: "WiFi signal dB"
+    id: wifi_signal_db
+    update_interval: 20s
+
+binary_sensor:
+  - platform: modbus_monitor
+    name: "Pump 1 active"
+    device_address: 0x0B
+    register_address: 41301
+  - platform: modbus_monitor
+    name: "Pump 2 active"
+    device_address: 0x0B
+    register_address: 41302
+  - platform: modbus_monitor
+    name: "Domestic hot water pump active"
+    device_address: 0x0B
+    register_address: 41303
+  - platform: modbus_monitor
+    name: "Internal pump active"
+    device_address: 0x0B
+    register_address: 41213
+  - platform: modbus_monitor
+    name: "Cooling switch"
+    icon: "mdi:snowflake"
+    device_address: 0x0B
+    register_address: 41214
+  - platform: modbus_monitor
+    name: "Heating switch"
+    icon: "mdi:fire"
+    device_address: 0x0B
+    register_address: 41215
+  - platform: modbus_monitor
+    name: "Three way valve state"
+    device_address: 0x0B
+    register_address: 41306
+    on_state:
+      then:
+        - text_sensor.template.publish:
+            id: three_way_valve_text
+            state: !lambda |
+              if (x)
+                return "Koelen/Verwarmen";
+              else
+                return "Tapwater";
+  - platform: modbus_monitor
+    name: "Internal auxilliary heater"
+    icon: "mdi:flash"
+    device_address: 0x0B
+    register_address: 41310
+  - platform: template
+    name: "Defrost"
+    icon: "mdi:snowflake-alert"
+    lambda: |-
+      return (id(defrost_value1).state == 68 && (id(defrost_value2).state == 1 || id(defrost_value3).state == 2048)) ||
+             (id(defrost_value1).state == 4);
+
+text_sensor:
+  - platform: template
+    name: Three way valve
+    id: three_way_valve_text
+  - platform: template
+    name: Internal pump speed
+    id: internal_pump_speed_text
+
+switch:
+  - platform: gpio
+    pin: GPIO0
+    name: Cooling Switch
+    restore_mode: RESTORE_DEFAULT_OFF    
+  - platform: gpio
+    pin: GPIO1
+    name: Heating Switch
+    restore_mode: RESTORE_DEFAULT_OFF
