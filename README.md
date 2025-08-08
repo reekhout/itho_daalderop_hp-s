@@ -1,2 +1,2 @@
-# itho_daalderop_hp-s
-Integrate an Itho Daalderop HP-S with ESPHome in Home Assistant
+# Itho Daalderop HP-S 55
+Integrate an Itho Daalderop HP-S 55 with ESPHome in Home Assistant
