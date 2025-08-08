@@ -2,20 +2,21 @@ esphome:
   name: hpc
   friendly_name: Heat Pump Controller
   min_version: 2025.5.0
+  #name_add_mac_suffix: true
 
 esp32:
   board: esp32-c3-devkitm-1
   framework:
     type: arduino
 
-# Enable logging
+# enable logging
 logger:
   baud_rate: 0
 
-# Enable Home Assistant API
+# enable Home Assistant API
 api:
 
-# Allow Over-The-Air updates
+# allow Over-The-Air updates
 ota:
   - platform: esphome
 
@@ -76,7 +77,7 @@ sensor:
     on_value:
       then:
         - sensor.template.publish:
-            id: heat_exchanger_d_t
+            id: heat_exchanger_water_d_t
             state: !lambda |-
               return x - id(heat_exchanger_water_inlet_temperature).state;
   - platform: modbus_monitor
@@ -92,13 +93,6 @@ sensor:
       - offset: -3000
       - multiply: 0.01
       - delta: 0.01
-  - platform: template
-    id: heat_exchanger_d_t
-    name: Heat exchanger ΔT
-    unit_of_measurement: °C
-    device_class: temperature
-    state_class: measurement
-    accuracy_decimals: 2
   - platform: modbus_monitor
     device_address: 0x0B
     register_address: 41205
@@ -198,12 +192,16 @@ sensor:
   - platform: modbus_monitor
     device_address: 0x02
     register_address: 42108
-    name: EEV opening
+    name: Expansion valve opening
     unit_of_measurement: P
     state_class: measurement
     icon: mdi:arrow-expand
     filters:
       - delta: 1
+  - platform: modbus_monitor
+    device_address: 0x02
+    register_address: 42109
+    id: defrost_1
   - platform: modbus_monitor
     device_address: 0x02
     register_address: 42111
@@ -276,21 +274,29 @@ sensor:
       - delta: 0.1
   - platform: modbus_monitor
     device_address: 0x02
-    register_address: 42109
-    id: defrost_value1
-  - platform: modbus_monitor
-    device_address: 0x02
     register_address: 42119
-    id: defrost_value2
+    id: defrost_2
   - platform: modbus_monitor
     device_address: 0x02
     register_address: 42120
-    id: defrost_value3
+    id: defrost_3
+  - platform: template
+    id: heat_exchanger_water_d_t
+    name: Heat exchanger water ΔT
+    unit_of_measurement: °C
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 2
   - platform: wifi_signal
     id: wifi_signal_db
     name: WiFi signal
 
 binary_sensor:
+  #- platform: modbus_monitor
+  #  device_address: 0x0B
+  #  register_address: 41213
+  #  name: Circulation pump
+  #  icon: mdi:pump
   - platform: modbus_monitor
     device_address: 0x0B
     register_address: 41214
@@ -324,7 +330,7 @@ binary_sensor:
     name: Defrosting
     icon: mdi:snowflake-melt
     lambda: |-
-      return (id(defrost_value1).state == 68 && (id(defrost_value2).state == 1 || id(defrost_value3).state == 2048)) || (id(defrost_value1).state == 4);
+      return (id(defrost_1).state == 68 && (id(defrost_2).state == 1 || id(defrost_3).state == 2048)) || (id(defrost_1).state == 4);
 
 text_sensor:
   - platform: template
@@ -339,13 +345,13 @@ text_sensor:
 switch:
   - platform: gpio
     pin: GPIO0
-    id: cooling_mode    
-    name: Cooling mode
+    id: cooling    
+    name: Cooling
     restore_mode: RESTORE_DEFAULT_OFF
-    interlock: heating_mode
+    interlock: heating
   - platform: gpio
     pin: GPIO1
-    id: heating_mode
-    name: Heating mode
+    id: heating
+    name: Heating
     restore_mode: RESTORE_DEFAULT_OFF
-    interlock: cooling_mode
+    interlock: cooling
